@@ -148,9 +148,12 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                             modifier = Modifier.weight(1f)
                         ) { Text("恢复默认") }
                         Button(
-                            onClick = { settingsOpen = false },
+                            onClick = {
+                                store.save(values)
+                                settingsOpen = false
+                            },
                             modifier = Modifier.weight(1f)
-                        ) { Text("完成") }
+                        ) { Text("保存设置") }
                     }
                 }
             }
