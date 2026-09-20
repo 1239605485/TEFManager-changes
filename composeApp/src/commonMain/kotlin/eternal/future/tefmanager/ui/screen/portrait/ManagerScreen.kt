@@ -125,6 +125,11 @@ import kotlin.time.Duration.Companion.milliseconds
 
 object ManagerScreen : Screen, MainScreen.TitledScreen {
     private var categories = mutableStateListOf<ManagerTab>()
+    private val searchExpandedState = mutableStateOf(false)
+
+    fun toggleSearch() {
+        searchExpandedState.value = !searchExpandedState.value
+    }
 
     data class ManagerTab(
         val id: String,
@@ -144,6 +149,7 @@ object ManagerScreen : Screen, MainScreen.TitledScreen {
         var selectedTab by remember { mutableIntStateOf(0) }
         var searchQuery by remember { mutableStateOf("") }
         var debouncedSearchQuery by remember { mutableStateOf("") }
+        val searchExpanded by searchExpandedState
         val pagerState = rememberPagerState(pageCount = { categories.size })
         val coroutineScope = rememberCoroutineScope()
 
@@ -282,12 +288,13 @@ object ManagerScreen : Screen, MainScreen.TitledScreen {
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it }
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
+                if (searchExpanded) {
+                    SearchBar(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it }
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
 
                 if (searchQuery.isEmpty()) {
                     NormalTabView(
