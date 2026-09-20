@@ -146,12 +146,16 @@ fun ModItemCard(
                 animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
             )
             .padding(4.dp),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (internalEnabled) {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            }
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp,
+            defaultElevation = 0.dp,
             pressedElevation = 0.dp,
             focusedElevation = 0.dp,
             hoveredElevation = 0.dp
@@ -160,19 +164,22 @@ fun ModItemCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 14.dp)
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(56.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (internalEnabled) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -187,7 +194,7 @@ fun ModItemCard(
                                         iconLoadError = Strings.error.iconLoadFailed(customIconPath)
                                     },
                                     modifier = Modifier
-                                        .size(42.dp)
+                                        .size(24.dp)
                                         .clip(RoundedCornerShape(4.dp))
                                 )
                             } else {
@@ -199,10 +206,15 @@ fun ModItemCard(
                                 )
                             }
                         } else {
-                            Text(
-                                text = modGlyph(mod.name),
-                                fontSize = 30.sp,
-                                modifier = Modifier.padding(top = 1.dp)
+                            Icon(
+                                imageVector = Icons.Rounded.Extension,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = if (internalEnabled) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
                             )
                         }
                     }
@@ -210,44 +222,57 @@ fun ModItemCard(
 
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Text(
+                        text = mod.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = if (internalEnabled) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (mod.brieflyDescribe.isNotBlank()) {
+                        Text(
+                            text = mod.brieflyDescribe,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (internalEnabled) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = mod.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
+                            text = mod.pkgId,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            fontSize = 10.sp,
+                            maxLines = 1
                         )
+
                         Surface(
-                            shape = RoundedCornerShape(50),
-                            color = if (internalEnabled) {
-                                MaterialTheme.colorScheme.tertiaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surfaceContainerHighest
-                            }
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = if (internalEnabled) "● 已启用" else "● 已禁用",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (internalEnabled) {
-                                        MaterialTheme.colorScheme.onTertiaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
-                            }
+                            Text(
+                                text = "v${mod.version}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 9.sp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
                         }
                     }
 
@@ -255,10 +280,17 @@ fun ModItemCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        Icon(
+                            Icons.Rounded.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.outline
+                        )
                         Text(
-                            text = "v${mod.version}  |  作者：${mod.author}",
+                            text = mod.author,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.outline,
+                            fontSize = 11.sp,
                             maxLines = 1
                         )
                     }
@@ -276,29 +308,28 @@ fun ModItemCard(
                         }
                     )
 
-                }
-            }
+                    IconButton(
+                        onClick = { expanded = !expanded },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        AnimatedContent(
+                            targetState = expanded,
+                            transitionSpec = {
+                                (fadeIn() + slideInVertically()).togetherWith(
+                                    fadeOut() + slideOutVertically()
+                                )
+                            },
+                            label = "Expand Icon"
+                        ) { isExpanded ->
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
 
-            if (mod.brieflyDescribe.isNotBlank()) {
-                Text(
-                    text = mod.brieflyDescribe,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            // Keep the settings entry visible on the first-level mod card.
-            // The actual controls open in ModSettingsSection's second-level dialog.
-            if (mod.settings.isNotEmpty() && settingsStore != null) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    ModSettingsSection(mod, settingsStore, internalEnabled)
                 }
             }
 
@@ -792,6 +823,18 @@ fun ModItemCard(
                         }
                     }
 
+                    // Keep the settings entry immediately above the destructive action.
+                    // The controls themselves remain in ModSettingsSection's second-level window.
+                    if (mod.settings.isNotEmpty() && settingsStore != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            ModSettingsSection(mod, settingsStore, internalEnabled)
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -833,16 +876,6 @@ fun ModItemCard(
                 }
             }
         }
-    }
-}
-
-private fun modGlyph(name: String): String {
-    val lower = name.lowercase()
-    return when {
-        name.contains("火把") || lower.contains("torch") -> "🔥"
-        name.contains("树") || lower.contains("tree") -> "🌳"
-        name.contains("箱") || lower.contains("chest") -> "📦"
-        else -> "🧩"
     }
 }
 
