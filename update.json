@@ -1,0 +1,41 @@
+{
+  "tefmanager": {
+    "fileName": "TEFManager",
+    "moduleName": "TEFManager",
+    "newVersion": "1.1.0",
+    "description": "",
+    "downloadUrl": "",
+    "externalUrl": "https://github.com/eternalfuture-e38299/TEFManager/releases/1.1.0",
+    "fileSize": ""
+  },
+  "tefkernel": {
+    "fileName": "tefkernel.zip",
+    "moduleName": "TEFKernel",
+    "newVersion": "1.0.1",
+    "description": "修复无法输出日志到文件的Bug | Fix the bug where logs cannot be output to a file",
+    "downloadUrl": "https://github.com/eternalfuture-e38299/TEFKernel/releases/download/1.0.1/tefkernel.zip",
+    "externalUrl": "https://github.com/eternalfuture-e38299/TEFKernel/releases/tag/1.0.1",
+    "fileSize": "1.28 MB"
+  },
+  "tefloader": {
+    "fileName": "tefloader-net.zip",
+    "moduleName": "TEFLoader",
+    "newVersion": "1.0.1",
+    "description": "修复无法输出日志到文件的Bug | Fix the bug where logs cannot be output to a file.",
+    "downloadUrl": "https://github.com/eternalfuture-e38299/TEFKernel/releases/download/1.0.1/tefloader-net.zip",
+    "externalUrl": "https://github.com/eternalfuture-e38299/TEFKernel/releases/tag/1.0.1",
+    "fileSize": "3.3 MB"
+  },
+  "language": null,
+  "texture": {
+    "fileName": "TexturePackExtension.zip",
+    "moduleName": "TexturePackExtension",
+    "newVersion": "1.0.2",
+    "description": "修复大部分UI透明Bug | Fixed most of the UI transparency bugs",
+    "downloadUrl": "https://github.com/eternalfuture-e38299/TEFManager-TexturePack-Extension/releases/download/1.0.2/TexturePackExtension.zip",
+    "externalUrl": "https://github.com/eternalfuture-e38299/TEFManager-TexturePack-Extension/releases/tag/1.0.2",
+    "fileSize": "846 KB"
+  },
+  "font": null,
+  "music": null
+}
