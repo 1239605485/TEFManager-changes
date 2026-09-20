@@ -25,14 +25,16 @@ class ModSettingsStore(private val privateDir: Path) {
     }
 
     fun load(schema: List<ModItem.ModSetting>): Map<String, JsonElement> {
-        val saved = (loadDocument()?.get("values") as? JsonObject).orEmpty()
+        // Do not use Map.orEmpty() here: it widens JsonObject to Map<String, JsonElement>,
+        // while the dotted-path helpers intentionally require a JsonObject.
+        val saved = (loadDocument()?.get("values") as? JsonObject) ?: JsonObject(emptyMap())
         return schema.associate { setting ->
             setting.key to (getPath(saved, setting.key) ?: setting.defaultValue)
         }
     }
 
     fun save(values: Map<String, JsonElement>) {
-        val oldValues = (loadDocument()?.get("values") as? JsonObject).orEmpty()
+        val oldValues = (loadDocument()?.get("values") as? JsonObject) ?: JsonObject(emptyMap())
         val mergedValues = values.entries.fold(oldValues) { document, (key, value) ->
             setPath(document, key, value)
         }
