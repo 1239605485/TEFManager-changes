@@ -49,7 +49,7 @@ class ModOverlaySettingsService : Service() {
     }
 
     private lateinit var windowManager: WindowManager
-    private var bubble: TextView? = null
+    private var bubble: View? = null
     private var panel: View? = null
     private var gamePackage: String? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -146,12 +146,12 @@ class ModOverlaySettingsService : Service() {
         val shell = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(14), dp(14), dp(14), dp(14))
-            background = rounded(Color.WHITE, 22, 0xFFB9C7E2.toInt())
+            background = rounded(0xFFFFFCF3.toInt(), 22, 0xFF8B86D8.toInt())
             elevation = dp(10).toFloat()
         }
         renderModList(shell)
         panel = shell
-        windowManager.addView(shell, overlayParams(dp(332), WindowManager.LayoutParams.WRAP_CONTENT, focusable = true).apply {
+        windowManager.addView(shell, overlayParams(dp(304), WindowManager.LayoutParams.WRAP_CONTENT, focusable = true).apply {
             gravity = Gravity.CENTER
         })
     }
@@ -171,7 +171,7 @@ class ModOverlaySettingsService : Service() {
             shell.addView(LinearLayout(this).apply {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(10), dp(4), dp(4), dp(4))
-                background = rounded(0xFFEEF3FF.toInt(), 12, 0xFFC7D0E5.toInt())
+                background = rounded(0xFFFFFBF0.toInt(), 12, 0xFFB7B0E8.toInt())
                 addView(text(entry.mod.name, 14, 0xFF17213A.toInt()), LinearLayout.LayoutParams(0, dp(44), 1f))
                 addView(Button(this@ModOverlaySettingsService).apply {
                     text = "⚙ 设置"; isAllCaps = false; textSize = 12f
@@ -206,7 +206,7 @@ class ModOverlaySettingsService : Service() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(10), dp(8), dp(8), dp(8))
-            background = rounded(0xFFF5F7FF.toInt(), 12)
+            background = rounded(0xFFFFFBF0.toInt(), 12, 0xFFD1CDF2.toInt())
         }
         row.addView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -261,7 +261,10 @@ class ModOverlaySettingsService : Service() {
     }
 
     private fun stepButton(label: String, onClick: () -> Unit) = Button(this).apply {
-        text = label; textSize = 18f; isAllCaps = false; setPadding(0, 0, 0, 0); setOnClickListener { onClick() }
+        text = label; textSize = 18f; isAllCaps = false; minWidth = 0; minHeight = 0
+        setTextColor(0xFF716CCB.toInt()); setPadding(0, 0, 0, 0)
+        background = rounded(0xFFFFFCF3.toInt(), 12, 0xFFAAA5E2.toInt())
+        setOnClickListener { onClick() }
     }
 
     private fun changeInteger(entry: OverlayMod, setting: ModItem.ModSetting, field: EditText, delta: Int, min: Int, max: Int) {
@@ -294,10 +297,15 @@ class ModOverlaySettingsService : Service() {
     private fun header(title: String, action: String, onAction: () -> Unit): View = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
         addView(text(title, 18, 0xFF17213A.toInt()), LinearLayout.LayoutParams(0, dp(40), 1f))
-        addView(Button(this@ModOverlaySettingsService).apply { text = action; isAllCaps = false; textSize = 12f; setOnClickListener { onAction() } })
+        addView(Button(this@ModOverlaySettingsService).apply {
+            text = action; isAllCaps = false; textSize = 12f; minWidth = 0; minHeight = 0
+            setTextColor(0xFF6863C2.toInt()); background = rounded(0xFFFFFCF3.toInt(), 12, 0xFFAAA5E2.toInt())
+            setOnClickListener { onAction() }
+        })
         if (action == "关闭") {
             addView(Button(this@ModOverlaySettingsService).apply {
-                text = "隐藏"; isAllCaps = false; textSize = 12f
+                text = "隐藏"; isAllCaps = false; textSize = 12f; minWidth = 0; minHeight = 0
+                setTextColor(0xFF6863C2.toInt()); background = rounded(0xFFFFFCF3.toInt(), 12, 0xFFAAA5E2.toInt())
                 setOnClickListener { hidePanel() }
             })
         }
