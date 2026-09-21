@@ -14,7 +14,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -253,7 +252,7 @@ fun ModItemCard(
                     }
 
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(4.dp)  // 垂直间距
                     ) {
                         Text(
                             text = mod.pkgId,
@@ -274,7 +273,7 @@ fun ModItemCard(
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                             )
-                        }
+                        } 
                     }
 
                     Row(
@@ -297,52 +296,38 @@ fun ModItemCard(
                     }
                 }
 
-                // Keep the primary actions high on the card.  The settings entry is
-                // intentionally placed directly beneath them, so it is available in
-                // the compact state without adding another action at the card bottom.
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Switch(
-                            checked = internalEnabled,
-                            onCheckedChange = { newValue ->
-                                internalEnabled = newValue
-                                onEnableChange(newValue)
-                            }
-                        )
-
-                        IconButton(
-                            onClick = { expanded = !expanded },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            AnimatedContent(
-                                targetState = expanded,
-                                transitionSpec = {
-                                    (fadeIn() + slideInVertically()).togetherWith(
-                                        fadeOut() + slideOutVertically()
-                                    )
-                                },
-                                label = "Expand Icon"
-                            ) { isExpanded ->
-                                Icon(
-                                    imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                    Switch(
+                        checked = internalEnabled,
+                        onCheckedChange = { newValue ->
+                            internalEnabled = newValue
+                            onEnableChange(newValue)
                         }
-                    }
+                    )
 
-                    // The compact card exposes the settings shortcut.  Expanded
-                    // details intentionally stay read-only except for deletion.
-                    if (!expanded && mod.settings.isNotEmpty() && settingsStore != null) {
-                        ModSettingsSection(mod, settingsStore)
+                    IconButton(
+                        onClick = { expanded = !expanded },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        AnimatedContent(
+                            targetState = expanded,
+                            transitionSpec = {
+                                (fadeIn() + slideInVertically()).togetherWith(
+                                    fadeOut() + slideOutVertically()
+                                )
+                            },
+                            label = "Expand Icon"
+                        ) { isExpanded ->
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -479,30 +464,36 @@ fun ModItemCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(7.dp),
-                                    color = MaterialTheme.colorScheme.surface,
-                                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Text(
-                                        Strings.manager.mod.targetGameVersion(mod.targetGameVersion.displayGameVersion()),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
-                                    )
-                                }
+                                AssistChip(
+                                    onClick = {},
+                                    label = {
+                                        Text(
+                                            Strings.manager.mod.targetGameVersion(mod.targetGameVersion),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                    ),
+                                    border = null,
+                                    elevation = null
+                                )
 
                                 if (mod.minGameVersion.isNotBlank() && mod.maxGameVersion.isNotBlank()) {
-                                    Surface(
-                                        shape = RoundedCornerShape(7.dp),
-                                        color = MaterialTheme.colorScheme.surface,
-                                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant)
-                                    ) {
-                                        Text(
-                                            Strings.manager.mod.compatibleGameVersion(mod.minGameVersion, mod.maxGameVersion),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
-                                        )
-                                    }
+                                    AssistChip(
+                                        onClick = {},
+                                        label = {
+                                            Text(
+                                                Strings.manager.mod.compatibleGameVersion(mod.minGameVersion, mod.maxGameVersion),
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                        ),
+                                        border = null,
+                                        elevation = null
+                                    )
                                 }
                             }
                         }
@@ -543,6 +534,10 @@ fun ModItemCard(
                             lineHeight = 20.sp,
                             modifier = Modifier.padding(bottom = 12.dp)
                         )
+                    }
+
+                    if (mod.settings.isNotEmpty() && settingsStore != null) {
+                        ModSettingsSection(mod, settingsStore)
                     }
 
                     if (mod.features.isNotEmpty()) {
@@ -873,16 +868,6 @@ fun ModItemCard(
             }
         }
     }
-}
-
-/**
- * The manifest historically stored values such as "Terraria Android 1.4.5.8.5".
- * The manager card already states the game context, so show the concise version
- * while retaining the "目标：" label from the launcher strings.
- */
-private fun String.displayGameVersion(): String {
-    val version = Regex("\\d+(?:\\.\\d+)+").find(this)?.value
-    return version ?: this
 }
 
 private fun formatVersionCodeRange(min: Int, max: Int): String {
