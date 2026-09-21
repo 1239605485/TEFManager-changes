@@ -28,7 +28,10 @@ class ModOverlaySettingsService : Service() {
     private lateinit var wm: WindowManager
     private val handler = Handler(Looper.getMainLooper())
     private var bubble: View? = null; private var hotspot: View? = null; private var panel: View? = null
-    private var bubbleX = 0; private var bubbleY = 0; private var gamePackage = ""; private var seenGame = false
+    private var bubbleX = 0; private var bubbleY = 0
+    // Keep the panel offset from its centered position when it is rebuilt.
+    private var panelX = 0; private var panelY = 0
+    private var gamePackage = ""; private var seenGame = false
     private var lastGameForegroundAt = 0L
     private val checkForeground = object : Runnable { override fun run() { if (leftGame()) stopSelf() else handler.postDelayed(this, CHECK_MS) } }
 
@@ -92,7 +95,7 @@ class ModOverlaySettingsService : Service() {
 
     private fun showPanel() { remove(bubble); bubble = null
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(8),dp(8),dp(8),dp(8)); background = shape(CREAM,16,PURPLE); elevation = dp(8).toFloat() }
-        list(shell); panel = shell; wm.addView(shell,params(dp(272),-2,true).apply { gravity = Gravity.CENTER }) }
+        list(shell); panel = shell; wm.addView(shell,params(dp(272),-2,true).apply { gravity = Gravity.CENTER; x = panelX; y = panelY }) }
     private fun list(shell: LinearLayout) { shell.removeAllViews(); shell.addView(header("已启用模组",null))
         val mods = active(); if (mods.isEmpty()) shell.addView(label("没有已启用且可配置的模组",12,INK).apply { gravity=Gravity.CENTER; setPadding(0,dp(40),0,dp(40)) })
         else mods.forEach { e -> shell.addView(Button(this).apply { text="⚙  ${e.mod.name}"; textSize=13f; isAllCaps=false; gravity=Gravity.CENTER_VERTICAL; setTextColor(INK); background=shape(LAVENDER,10,PURPLE); setPadding(dp(10),0,dp(8),0); setOnClickListener { settings(shell,e) } }, LinearLayout.LayoutParams(-1,dp(42)).apply { topMargin=dp(7) }) } }
@@ -140,7 +143,12 @@ class ModOverlaySettingsService : Service() {
         val lp = v.layoutParams as? WindowManager.LayoutParams ?: return true
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> { panelDownX = event.rawX; panelDownY = event.rawY; panelStartX = lp.x; panelStartY = lp.y }
-            MotionEvent.ACTION_MOVE -> { lp.x = panelStartX + (event.rawX - panelDownX).roundToInt(); lp.y = panelStartY + (event.rawY - panelDownY).roundToInt(); wm.updateViewLayout(v, lp) }
+            MotionEvent.ACTION_MOVE -> {
+                panelX = panelStartX + (event.rawX - panelDownX).roundToInt()
+                panelY = panelStartY + (event.rawY - panelDownY).roundToInt()
+                lp.x = panelX; lp.y = panelY
+                wm.updateViewLayout(v, lp)
+            }
         }
         return true
     }
