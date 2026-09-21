@@ -70,7 +70,10 @@ import kotlinx.serialization.json.jsonPrimitive
 /** The second-level editor. Visuals live here; the JSON store and native mod API stay unchanged. */
 @Composable
 fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
-    var values by remember(mod.pkgId) { mutableStateOf(store.load(mod.settings)) }
+    val schema = remember(mod.pkgId, mod.settings) {
+        mod.settings.ifEmpty { terraReliefFallbackSettings(mod) }
+    }
+    var values by remember(mod.pkgId, schema) { mutableStateOf(store.load(schema)) }
     var settingsOpen by remember { mutableStateOf(false) }
     var advancedMode by remember { mutableStateOf(false) }
     var rawJson by remember(mod.pkgId) { mutableStateOf(store.loadRaw()) }
@@ -161,7 +164,7 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                             }
                         )
                     } else {
-                        val grouped = mod.settings.groupBy { it.sectionName() }
+                                        val grouped = schema.groupBy { it.sectionName() }
                         listOf("配方倍率", "钓鱼", "其他").forEach { section ->
                             val sectionSettings = grouped[section].orEmpty()
                             if (sectionSettings.isNotEmpty()) {
@@ -175,7 +178,7 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                                 ) {
                                     sectionSettings.forEach { setting ->
                                         ModSettingEditor(
-                                            setting = setting,
+                                             setting = setting,
                                             current = values[setting.key] ?: setting.defaultValue,
                                             onChange = { update(setting.key, it) }
                                         )
@@ -194,10 +197,10 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                     OutlinedButton(
                         onClick = {
                             if (advancedMode) {
-                                rawJson = store.defaultsRaw(mod.settings)
+                                rawJson = store.defaultsRaw(schema)
                                 jsonError = null
                             } else {
-                                values = mod.settings.associate { it.key to it.defaultValue }
+                                values = schema.associate { it.key to it.defaultValue }
                                 store.save(values)
                                 rawJson = store.loadRaw()
                             }
@@ -212,7 +215,7 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                             if (advancedMode) {
                                 store.saveRaw(rawJson).fold(
                                     onSuccess = {
-                                        values = store.load(mod.settings)
+                                        values = store.load(schema)
                                         jsonError = null
                                         advancedMode = false
                                         settingsOpen = false
@@ -429,6 +432,58 @@ private fun pixelFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedContainerColor = PixelBackground,
     unfocusedContainerColor = PixelBackground
 )
+
+/**
+ * Older EasyCraft/TerraRelief packages did not declare their settings in
+ * Info.json, so the settings entry was never rendered at all. Keep a small
+ * compatibility schema for that package; newer packages still use their own
+ * declared schema unchanged.
+ */
+private fun terraReliefFallbackSettings(mod: ModItem): List<ModItem.ModSetting> =
+    if (mod.pkgId != "com.celso.terrarelief") emptyList() else listOf(
+        ModItem.ModSetting(
+            key = "building_material_multiplier",
+            title = "建筑材料合成产出",
+            description = "调整建筑材料的合成产出数量",
+            type = ModItem.SettingType.INTEGER,
+            defaultValue = JsonPrimitive(3), min = 1, max = 99, step = 1, unit = "×"
+        ),
+        ModItem.ModSetting(
+            key = "torch_multiplier",
+            title = "火把合成产出",
+            description = "调整火把的合成产出数量",
+            type = ModItem.SettingType.INTEGER,
+            defaultValue = JsonPrimitive(2), min = 1, max = 99, step = 1, unit = "×"
+        ),
+        ModItem.ModSetting(
+            key = "potion_multiplier",
+            title = "常用药水产出",
+            description = "调整常用药水的合成产出数量",
+            type = ModItem.SettingType.INTEGER,
+            defaultValue = JsonPrimitive(5), min = 1, max = 99, step = 1, unit = "×"
+        ),
+        ModItem.ModSetting(
+            key = "boss_multiplier",
+            title = "Boss 合成产出",
+            description = "调整 Boss 合成材料的产出数量",
+            type = ModItem.SettingType.INTEGER,
+            defaultValue = JsonPrimitive(50), min = 0, max = 100, step = 5, unit = "%"
+        ),
+        ModItem.ModSetting(
+            key = "fishing_enabled",
+            title = "启用钓鱼增强",
+            description = "增加钓鱼相关的收益",
+            type = ModItem.SettingType.SWITCH,
+            defaultValue = JsonPrimitive(true)
+        ),
+        ModItem.ModSetting(
+            key = "fish_multiplier",
+            title = "普通鱼类数量",
+            description = "调整普通鱼类的获取数量",
+            type = ModItem.SettingType.INTEGER,
+            defaultValue = JsonPrimitive(2), min = 1, max = 99, step = 1, unit = "×"
+        )
+    )
 
 private fun ModItem.ModSetting.sectionName(): String = when {
     key.startsWith("fishing_") || key == "bait_save_enabled" -> "钓鱼"

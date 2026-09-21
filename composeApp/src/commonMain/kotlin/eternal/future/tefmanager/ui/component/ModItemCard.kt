@@ -341,7 +341,7 @@ fun ModItemCard(
 
                     // The compact card exposes the settings shortcut.  Expanded
                     // details intentionally stay read-only except for deletion.
-                    if (!expanded && mod.settings.isNotEmpty() && settingsStore != null) {
+                    if (!expanded && (mod.settings.isNotEmpty() || mod.pkgId == "com.celso.terrarelief") && settingsStore != null) {
                         ModSettingsSection(mod, settingsStore)
                     }
                 }
