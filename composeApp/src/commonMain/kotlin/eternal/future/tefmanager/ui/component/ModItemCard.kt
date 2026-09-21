@@ -115,7 +115,6 @@ fun ModItemCard(
 ) {
     val fileSystem: FileSystem = FileSystem.SYSTEM
     var expanded by remember { mutableStateOf(false) }
-    var settingsRequest by remember { mutableStateOf(false) }
     var internalEnabled by remember { mutableStateOf(enabled) }
     var hasCustomIcon by remember { mutableStateOf(false) }
     var iconLoadError by remember { mutableStateOf<String?>(null) }
@@ -166,10 +165,7 @@ fun ModItemCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    if (mod.isTerraReliefTarget()) settingsRequest = true
-                    else expanded = !expanded
-                }
+                .clickable { expanded = !expanded }
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
@@ -345,13 +341,8 @@ fun ModItemCard(
 
                     // The compact card exposes the settings shortcut.  Expanded
                     // details intentionally stay read-only except for deletion.
-                    if (!expanded && (mod.settings.isNotEmpty() || mod.isTerraReliefTarget()) && settingsStore != null) {
-                        ModSettingsSection(
-                            mod = mod,
-                            store = settingsStore,
-                            openRequest = settingsRequest,
-                            onOpenRequestConsumed = { settingsRequest = false }
-                        )
+                    if (!expanded && mod.settings.isNotEmpty() && settingsStore != null) {
+                        ModSettingsSection(mod, settingsStore)
                     }
                 }
             }
@@ -882,14 +873,6 @@ fun ModItemCard(
             }
         }
     }
-}
-
-private fun ModItem.isTerraReliefTarget(): Boolean {
-    val text = "$pkgId $name".lowercase()
-    return pkgId == "com.celso.terrarelief" ||
-        text.contains("terrarelief") ||
-        text.contains("easycraft") ||
-        name.contains("轻松泰拉")
 }
 
 /**

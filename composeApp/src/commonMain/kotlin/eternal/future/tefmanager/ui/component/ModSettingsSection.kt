@@ -71,13 +71,9 @@ import kotlinx.serialization.json.jsonPrimitive
 @Composable
 fun ModSettingsSection(
     mod: ModItem,
-    store: ModSettingsStore,
-    openRequest: Boolean = false,
-    onOpenRequestConsumed: () -> Unit = {}
+    store: ModSettingsStore
 ) {
-    val schema = remember(mod.pkgId, mod.settings) {
-        mod.settings.ifEmpty { terraReliefFallbackSettings(mod) }
-    }
+    val schema = mod.settings
     var values by remember(mod.pkgId, schema) { mutableStateOf(store.load(schema)) }
     var settingsOpen by remember { mutableStateOf(false) }
     var advancedMode by remember { mutableStateOf(false) }
@@ -86,16 +82,6 @@ fun ModSettingsSection(
     // Keep the scroll position above the dialog content so option updates do not
     // recreate the state and jump back to the top.
     val settingsScrollState = rememberScrollState()
-
-    LaunchedEffect(openRequest) {
-        if (openRequest) {
-            rawJson = store.loadRaw()
-            advancedMode = false
-            jsonError = null
-            settingsOpen = true
-            onOpenRequestConsumed()
-        }
-    }
 
     fun update(key: String, value: JsonElement) {
         values = values + (key to value)
@@ -447,66 +433,6 @@ private fun pixelFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedContainerColor = PixelBackground,
     unfocusedContainerColor = PixelBackground
 )
-
-/**
- * Older EasyCraft/TerraRelief packages did not declare their settings in
- * Info.json, so the settings entry was never rendered at all. Keep a small
- * compatibility schema for that package; newer packages still use their own
- * declared schema unchanged.
- */
-private fun terraReliefFallbackSettings(mod: ModItem): List<ModItem.ModSetting> =
-    if (!mod.isTerraReliefTarget()) emptyList() else listOf(
-        ModItem.ModSetting(
-            key = "building_material_multiplier",
-            title = "建筑材料合成产出",
-            description = "调整建筑材料的合成产出数量",
-            type = ModItem.SettingType.INTEGER,
-            defaultValue = JsonPrimitive(3), min = 1, max = 99, step = 1, unit = "×"
-        ),
-        ModItem.ModSetting(
-            key = "torch_multiplier",
-            title = "火把合成产出",
-            description = "调整火把的合成产出数量",
-            type = ModItem.SettingType.INTEGER,
-            defaultValue = JsonPrimitive(2), min = 1, max = 99, step = 1, unit = "×"
-        ),
-        ModItem.ModSetting(
-            key = "potion_multiplier",
-            title = "常用药水产出",
-            description = "调整常用药水的合成产出数量",
-            type = ModItem.SettingType.INTEGER,
-            defaultValue = JsonPrimitive(5), min = 1, max = 99, step = 1, unit = "×"
-        ),
-        ModItem.ModSetting(
-            key = "boss_multiplier",
-            title = "Boss 合成产出",
-            description = "调整 Boss 合成材料的产出数量",
-            type = ModItem.SettingType.INTEGER,
-            defaultValue = JsonPrimitive(50), min = 0, max = 100, step = 5, unit = "%"
-        ),
-        ModItem.ModSetting(
-            key = "fishing_enabled",
-            title = "启用钓鱼增强",
-            description = "增加钓鱼相关的收益",
-            type = ModItem.SettingType.SWITCH,
-            defaultValue = JsonPrimitive(true)
-        ),
-        ModItem.ModSetting(
-            key = "fish_multiplier",
-            title = "普通鱼类数量",
-            description = "调整普通鱼类的获取数量",
-            type = ModItem.SettingType.INTEGER,
-            defaultValue = JsonPrimitive(2), min = 1, max = 99, step = 1, unit = "×"
-        )
-    )
-
-private fun ModItem.isTerraReliefTarget(): Boolean {
-    val text = "$pkgId $name".lowercase()
-    return pkgId == "com.celso.terrarelief" ||
-        text.contains("terrarelief") ||
-        text.contains("easycraft") ||
-        name.contains("轻松泰拉")
-}
 
 private fun ModItem.ModSetting.sectionName(): String = when {
     key.startsWith("fishing_") || key == "bait_save_enabled" -> "钓鱼"
