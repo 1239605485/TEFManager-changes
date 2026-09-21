@@ -23,7 +23,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -69,7 +68,7 @@ import kotlinx.serialization.json.jsonPrimitive
 
 /** The second-level editor. Visuals live here; the JSON store and native mod API stay unchanged. */
 @Composable
-fun ModSettingsSection(mod: ModItem, store: ModSettingsStore, enabled: Boolean = true) {
+fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
     var values by remember(mod.pkgId) { mutableStateOf(store.load(mod.settings)) }
     var settingsOpen by remember { mutableStateOf(false) }
     var advancedMode by remember { mutableStateOf(false) }
@@ -110,7 +109,7 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore, enabled: Boolean =
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth().fillMaxHeight(0.96f),
-            shape = RoundedCornerShape(26.dp),
+            shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
             color = PixelBackground,
             border = BorderStroke(1.dp, PixelLine)
         ) {
@@ -125,18 +124,15 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore, enabled: Boolean =
                     ) { Icon(Icons.Rounded.ArrowBack, contentDescription = "返回") }
                     Column(Modifier.weight(1f)) {
                         Text("轻松泰拉设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = PixelText)
-                        Text("MOD CONFIG // ${mod.name}", style = MaterialTheme.typography.labelSmall, color = PixelMuted)
                     }
-                    Text("v${mod.version}", style = MaterialTheme.typography.labelSmall, color = PixelAmber, fontWeight = FontWeight.Bold)
+                    Text("v${mod.version}", style = MaterialTheme.typography.labelSmall, color = PixelMuted)
                 }
                 PixelRule()
 
                 Column(
-                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ModSummaryCard(mod, enabled)
-
                     Row(
                         modifier = Modifier.fillMaxWidth().background(PixelPanel, RoundedCornerShape(12.dp)).padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -166,11 +162,10 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore, enabled: Boolean =
                         )
                     } else {
                         val grouped = mod.settings.groupBy { it.sectionName() }
-                        listOf("配方倍率", "钓鱼", "其他").forEachIndexed { index, section ->
+                        listOf("配方倍率", "钓鱼", "其他").forEach { section ->
                             val sectionSettings = grouped[section].orEmpty()
                             if (sectionSettings.isNotEmpty()) {
                                 PixelSettingsGroup(
-                                    index = index + 1,
                                     title = section,
                                     description = when (section) {
                                         "配方倍率" -> "调整各类合成配方的产出数量倍率"
@@ -308,39 +303,41 @@ private fun ModSettingEditor(setting: ModItem.ModSetting, current: JsonElement, 
                     Text(setting.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = PixelText)
                     if (setting.description.isNotBlank()) Text(setting.description, style = MaterialTheme.typography.bodySmall, color = PixelMuted)
                 }
-                Surface(shape = RoundedCornerShape(10.dp), color = PixelBackground, border = BorderStroke(1.dp, PixelLine)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 3.dp)
-                    ) {
-                        TextButton(
-                            onClick = { onChange(JsonPrimitive((now - setting.step.coerceAtLeast(1)).coerceIn(min, max))) },
-                            modifier = Modifier.size(34.dp),
-                            contentPadding = PaddingValues(0.dp),
-                            colors = ButtonDefaults.textButtonColors(contentColor = PixelCyan)
-                        ) { Text("−", style = MaterialTheme.typography.titleLarge) }
-                        OutlinedTextField(
-                            value = inputText,
-                            onValueChange = { raw ->
+                if (unit == "×") {
+                    // Multipliers are the only values with quick +/- controls.
+                    // The field stays editable for precise values.
+                    Surface(shape = RoundedCornerShape(10.dp), color = PixelBackground, border = BorderStroke(1.dp, PixelLine)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 3.dp)
+                        ) {
+                            TextButton(
+                                onClick = { onChange(JsonPrimitive((now - setting.step.coerceAtLeast(1)).coerceIn(min, max))) },
+                                modifier = Modifier.size(34.dp),
+                                contentPadding = PaddingValues(0.dp),
+                                colors = ButtonDefaults.textButtonColors(contentColor = PixelCyan)
+                            ) { Text("−", style = MaterialTheme.typography.titleLarge) }
+                            NumberField(inputText, unit, onInput = { raw ->
                                 val digits = raw.filter { it.isDigit() }
                                 inputText = digits
                                 digits.toIntOrNull()?.let { onChange(JsonPrimitive(it.coerceIn(min, max))) }
-                            },
-                            modifier = Modifier.width(82.dp),
-                            singleLine = true,
-                            suffix = { Text(unit, color = PixelAmber) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            label = { Text("数值") },
-                            colors = pixelFieldColors()
-                        )
-                        TextButton(
-                            onClick = { onChange(JsonPrimitive((now + setting.step.coerceAtLeast(1)).coerceIn(min, max))) },
-                            modifier = Modifier.size(34.dp),
-                            contentPadding = PaddingValues(0.dp),
-                            colors = ButtonDefaults.textButtonColors(contentColor = PixelCyan)
-                        ) { Text("+", style = MaterialTheme.typography.titleLarge) }
+                            })
+                            TextButton(
+                                onClick = { onChange(JsonPrimitive((now + setting.step.coerceAtLeast(1)).coerceIn(min, max))) },
+                                modifier = Modifier.size(34.dp),
+                                contentPadding = PaddingValues(0.dp),
+                                colors = ButtonDefaults.textButtonColors(contentColor = PixelCyan)
+                            ) { Text("+", style = MaterialTheme.typography.titleLarge) }
+                        }
                     }
+                } else {
+                    // Percentages and quantities deliberately remain clean manual fields.
+                    NumberField(inputText, unit, onInput = { raw ->
+                        val digits = raw.filter { it.isDigit() }
+                        inputText = digits
+                        digits.toIntOrNull()?.let { onChange(JsonPrimitive(it.coerceIn(min, max))) }
+                    })
                 }
             }
         }
@@ -363,35 +360,22 @@ private fun ModSettingEditor(setting: ModItem.ModSetting, current: JsonElement, 
 }
 
 @Composable
-private fun ModSummaryCard(mod: ModItem, enabled: Boolean) {
-    Card(colors = CardDefaults.cardColors(containerColor = PixelPanel), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, PixelLine)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Surface(modifier = Modifier.size(58.dp), shape = RoundedCornerShape(10.dp), color = PixelBackground, border = BorderStroke(1.dp, PixelCyanDark)) {
-                Box(contentAlignment = Alignment.Center) { Text(modGlyph(mod.name), fontSize = 30.sp) }
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(mod.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PixelText)
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = if (enabled) PixelCyanDark else PixelBackground,
-                        border = BorderStroke(1.dp, if (enabled) PixelCyan else PixelLine)
-                    ) {
-                        Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            if (enabled) Icon(Icons.Rounded.CheckCircle, contentDescription = null, modifier = Modifier.size(13.dp), tint = PixelCyan)
-                            Text(if (enabled) "已启用" else "已禁用", style = MaterialTheme.typography.labelSmall, color = if (enabled) PixelCyan else PixelMuted)
-                        }
-                    }
-                }
-                Text("v${mod.version}  |  作者：${mod.author}", style = MaterialTheme.typography.labelSmall, color = PixelMuted)
-                if (mod.brieflyDescribe.isNotBlank()) Text(mod.brieflyDescribe, style = MaterialTheme.typography.bodySmall, color = PixelMuted, maxLines = 2)
-            }
-        }
-    }
+private fun NumberField(
+    value: String,
+    unit: String,
+    onInput: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onInput,
+        modifier = Modifier.width(82.dp),
+        singleLine = true,
+        suffix = { Text(unit, color = PixelAmber) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        label = { Text("数值") },
+        supportingText = null,
+        colors = pixelFieldColors()
+    )
 }
 
 @Composable
@@ -418,22 +402,18 @@ private fun PixelRule() {
 }
 
 @Composable
-private fun PixelSettingsGroup(index: Int, title: String, description: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = PixelPanel), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, PixelLine)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(color = PixelAmber, shape = RoundedCornerShape(5.dp), modifier = Modifier.size(30.dp)) {
-                    Box(contentAlignment = Alignment.Center) { Text(index.toString().padStart(2, '0'), color = PixelBackground, fontSize = 11.sp, fontWeight = FontWeight.Black) }
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PixelText)
-                    Text(description, style = MaterialTheme.typography.bodySmall, color = PixelMuted)
-                }
-                Text("//", color = PixelCyan, fontWeight = FontWeight.Black)
-            }
-            PixelRule()
-            content()
+private fun PixelSettingsGroup(title: String, description: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PixelText)
+            Spacer(Modifier.width(10.dp))
+            Box(Modifier.weight(1f).height(1.dp).background(PixelLine))
         }
+        Text(description, style = MaterialTheme.typography.bodySmall, color = PixelMuted)
+        content()
     }
 }
 
