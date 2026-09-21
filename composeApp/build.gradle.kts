@@ -12,8 +12,8 @@ plugins {
 }
 
 object AppConfig {
-    const val VERSION_NAME : String = "1.1.1"
-    const val VERSION_CODE : Int = 2026091902
+    const val VERSION_NAME : String = "1.1.2-overlay-live-v2"
+    const val VERSION_CODE : Int = 2026092102
     const val KERNEL_VERSION = "1.0.1"
     const val TEFLOADER_VERSION = "1.0.1"
     val MODULE_VERSIONS = mapOf(

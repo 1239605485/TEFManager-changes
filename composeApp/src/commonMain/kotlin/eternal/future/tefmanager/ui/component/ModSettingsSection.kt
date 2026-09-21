@@ -23,6 +23,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -81,24 +82,20 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
         rawJson = store.loadRaw()
     }
 
-    OutlinedButton(
+    IconButton(
         onClick = {
             rawJson = store.loadRaw()
             advancedMode = false
             jsonError = null
             settingsOpen = true
         },
-        modifier = Modifier.padding(top = 2.dp).height(42.dp),
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, PixelLine),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = PixelPanelRaised, contentColor = PixelCyan),
-        contentPadding = PaddingValues(horizontal = 12.dp)
+        modifier = Modifier.size(36.dp),
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = PixelPanelRaised,
+            contentColor = PixelCyan
+        )
     ) {
-        Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text("模组设置", fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.width(6.dp))
-        Icon(Icons.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+        Icon(Icons.Rounded.Settings, contentDescription = "模组设置", modifier = Modifier.size(20.dp))
     }
 
     if (!settingsOpen) return
@@ -448,13 +445,13 @@ private fun modGlyph(name: String): String {
 
 // Light palette: keep the pixel-console layout, but match TEFManager's original
 // white/lavender appearance instead of forcing a separate dark theme.
-private val PixelBackground = Color(0xFFF3F1FF)
-private val PixelPanel = Color(0xFFFFFCF3)
-private val PixelPanelRaised = Color(0xFFF0EEFF)
-private val PixelLine = Color(0xFFB8B2E8)
-private val PixelCyan = Color(0xFF6863C8)
-private val PixelCyanDark = Color(0xFFE0DEFF)
+private val PixelBackground = Color(0xFFF5F7FF)
+private val PixelPanel = Color(0xFFFFFFFF)
+private val PixelPanelRaised = Color(0xFFEEF3FF)
+private val PixelLine = Color(0xFFC7D0E5)
+private val PixelCyan = Color(0xFF1264E8)
+private val PixelCyanDark = Color(0xFFDCE8FF)
 private val PixelAmber = Color(0xFFE79A00)
-private val PixelText = Color(0xFF262344)
-private val PixelMuted = Color(0xFF716D8C)
+private val PixelText = Color(0xFF17213A)
+private val PixelMuted = Color(0xFF5E6A80)
 private val PixelDanger = Color(0xFFD13636)

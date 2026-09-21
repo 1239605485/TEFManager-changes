@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import android.app.AppOpsManager
 
 /** Starts the user-approved overlay only when Terraria is launched. */
 object GameOverlayController {
@@ -20,10 +21,22 @@ object GameOverlayController {
             return false
         }
 
+        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val usageAllowed = appOps.checkOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            android.os.Process.myUid(),
+            context.packageName
+        ) == AppOpsManager.MODE_ALLOWED
+        if (!usageAllowed) {
+            context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            Toast.makeText(context, "请允许 TEFManager 访问使用情况，以便离开游戏时自动关闭悬浮窗", Toast.LENGTH_LONG).show()
+            return false
+        }
+
         return true
     }
 
-    fun startForGame(context: Context, gamePackage: String? = null) {
+    fun startForGame(context: Context, gamePackage: String) {
         if (!Settings.canDrawOverlays(context)) return
 
         val serviceIntent = Intent(context, ModOverlaySettingsService::class.java)

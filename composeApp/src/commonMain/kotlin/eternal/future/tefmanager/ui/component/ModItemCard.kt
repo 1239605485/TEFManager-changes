@@ -14,6 +14,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,7 +71,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
 import eternal.future.tefmanager.model.ModItem
 import eternal.future.tefmanager.strings.StringsResource.Strings
 import eternal.future.tefmanager.utils.addon.ModSettingsStore
@@ -149,7 +149,11 @@ fun ModItemCard(
             .padding(4.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (internalEnabled) UiCard else UiCard.copy(alpha = 0.72f)
+            containerColor = if (internalEnabled) {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            }
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 0.dp,
@@ -171,7 +175,11 @@ fun ModItemCard(
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (internalEnabled) UiAccentSoft else UiCardMuted,
+                    color = if (internalEnabled) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
                     modifier = Modifier.size(40.dp)
                 ) {
                     Box(
@@ -471,36 +479,30 @@ fun ModItemCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                AssistChip(
-                                    onClick = {},
-                                    label = {
-                                        Text(
-                                            Strings.manager.mod.targetGameVersion(mod.targetGameVersion.displayGameVersion()),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    },
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                                    ),
-                                    border = null,
-                                    elevation = null
-                                )
+                                Surface(
+                                    shape = RoundedCornerShape(7.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant)
+                                ) {
+                                    Text(
+                                        Strings.manager.mod.targetGameVersion(mod.targetGameVersion.displayGameVersion()),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
+                                    )
+                                }
 
                                 if (mod.minGameVersion.isNotBlank() && mod.maxGameVersion.isNotBlank()) {
-                                    AssistChip(
-                                        onClick = {},
-                                        label = {
-                                            Text(
-                                                Strings.manager.mod.compatibleGameVersion(mod.minGameVersion, mod.maxGameVersion),
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                        },
-                                        colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                                        ),
-                                        border = null,
-                                        elevation = null
-                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(7.dp),
+                                        color = MaterialTheme.colorScheme.surface,
+                                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant)
+                                    ) {
+                                        Text(
+                                            Strings.manager.mod.compatibleGameVersion(mod.minGameVersion, mod.maxGameVersion),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -872,11 +874,6 @@ fun ModItemCard(
         }
     }
 }
-
-// Compact lavender/cream palette shared by the first-level mod cards.
-private val UiCard = Color(0xFFFFFCF3)
-private val UiCardMuted = Color(0xFFF2F0FA)
-private val UiAccentSoft = Color(0xFFE0DEFF)
 
 /**
  * The manifest historically stored values such as "Terraria Android 1.4.5.8.5".
