@@ -75,6 +75,9 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
     var advancedMode by remember { mutableStateOf(false) }
     var rawJson by remember(mod.pkgId) { mutableStateOf(store.loadRaw()) }
     var jsonError by remember { mutableStateOf<String?>(null) }
+    // Keep the scroll position above the dialog content so option updates do not
+    // recreate the state and jump back to the top.
+    val settingsScrollState = rememberScrollState()
 
     fun update(key: String, value: JsonElement) {
         values = values + (key to value)
@@ -127,7 +130,7 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                 PixelRule()
 
                 Column(
-                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 12.dp),
+                    modifier = Modifier.weight(1f).verticalScroll(settingsScrollState).padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(

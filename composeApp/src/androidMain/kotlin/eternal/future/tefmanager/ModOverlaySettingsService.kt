@@ -27,7 +27,7 @@ class ModOverlaySettingsService : Service() {
     }
     private lateinit var wm: WindowManager
     private val handler = Handler(Looper.getMainLooper())
-    private var bubble: TextView? = null; private var hotspot: View? = null; private var panel: View? = null
+    private var bubble: View? = null; private var hotspot: View? = null; private var panel: View? = null
     private var bubbleX = 0; private var bubbleY = 0; private var gamePackage = ""; private var seenGame = false
     private val checkForeground = object : Runnable { override fun run() { if (leftGame()) stopSelf() else handler.postDelayed(this, CHECK_MS) } }
 
@@ -49,8 +49,17 @@ class ModOverlaySettingsService : Service() {
 
     private fun showBubble() {
         if (bubble != null) return
-        val v = TextView(this).apply { text = "⚙"; textSize = 19f; gravity = Gravity.CENTER; setTextColor(Color.WHITE); background = shape(PURPLE, 20, CREAM); elevation = dp(5).toFloat() }
-        val p = params(dp(40), dp(40), false).apply { gravity = Gravity.TOP or Gravity.START; x = bubbleX; y = bubbleY }
+        val image = resources.getIdentifier("overlay_character", "drawable", packageName)
+        val v = ImageView(this).apply {
+            if (image != 0) setImageResource(image)
+            else setImageResource(android.R.drawable.ic_menu_manage)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setBackgroundColor(Color.TRANSPARENT)
+            setPadding(0, 0, 0, 0)
+            contentDescription = "打开模组设置"
+            elevation = dp(3).toFloat()
+        }
+        val p = params(dp(56), dp(56), false).apply { gravity = Gravity.TOP or Gravity.START; x = bubbleX; y = bubbleY }
         var dx = 0f; var dy = 0f; var sx = 0; var sy = 0
         v.setOnTouchListener { _, e -> when (e.action) {
             MotionEvent.ACTION_DOWN -> { dx = e.rawX; dy = e.rawY; sx = p.x; sy = p.y; true }
@@ -64,16 +73,24 @@ class ModOverlaySettingsService : Service() {
 
     private fun showPanel() { remove(bubble); bubble = null
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(8),dp(8),dp(8),dp(8)); background = shape(CREAM,16,PURPLE); elevation = dp(8).toFloat() }
-        list(shell); panel = shell; wm.addView(shell,params(dp(272),dp(354),true).apply { gravity = Gravity.CENTER }) }
+        list(shell); panel = shell; wm.addView(shell,params(dp(272),-2,true).apply { gravity = Gravity.CENTER }) }
     private fun list(shell: LinearLayout) { shell.removeAllViews(); shell.addView(header("已启用模组",null))
         val mods = active(); if (mods.isEmpty()) shell.addView(label("没有已启用且可配置的模组",12,INK).apply { gravity=Gravity.CENTER; setPadding(0,dp(40),0,dp(40)) })
         else mods.forEach { e -> shell.addView(Button(this).apply { text="⚙  ${e.mod.name}"; textSize=13f; isAllCaps=false; gravity=Gravity.CENTER_VERTICAL; setTextColor(INK); background=shape(LAVENDER,10,PURPLE); setPadding(dp(10),0,dp(8),0); setOnClickListener { settings(shell,e) } }, LinearLayout.LayoutParams(-1,dp(42)).apply { topMargin=dp(7) }) } }
     private fun settings(shell: LinearLayout, entry: OverlayMod) { shell.removeAllViews(); shell.addView(header(entry.mod.name) { list(shell) }); shell.addView(label("修改后立即保存并应用",10,0xFF6B6B83.toInt()).apply { setPadding(dp(4),0,0,dp(5)) })
         val content=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }; val values=entry.manager.getSettingsStore(entry.mod.pkgId).load(entry.mod.settings)
         entry.mod.settings.forEach { s -> content.addView(row(entry,s,values[s.key]?:s.defaultValue),LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(5) }) }
-        shell.addView(ScrollView(this).apply { addView(content) },LinearLayout.LayoutParams(-1,0,1f)) }
-    private fun header(title:String,back:(()->Unit)?): View = LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL
-        if(back!=null)addView(button("‹"){back()},LinearLayout.LayoutParams(dp(28),dp(30))); addView(label(title,14,INK).apply { gravity=Gravity.CENTER_VERTICAL },LinearLayout.LayoutParams(0,dp(30),1f)); addView(button("隐藏"){ close(false); hideBubble() }); addView(button("关闭"){ close(false); stopSelf() }) }
+        shell.addView(ScrollView(this).apply { isFillViewport = false; addView(content) },LinearLayout.LayoutParams(-1,dp(238))) }
+    private fun header(title:String,back:(()->Unit)?): View = LinearLayout(this).apply {
+        gravity=Gravity.CENTER_VERTICAL
+        val drag = label(title,14,INK).apply { gravity=Gravity.CENTER_VERTICAL; setPadding(dp(3),0,0,0) }
+        if(back!=null)addView(button("‹"){back()},LinearLayout.LayoutParams(dp(30),dp(32)))
+        drag.setOnTouchListener { _, event -> dragPanel(event); true }
+        addView(drag,LinearLayout.LayoutParams(0,dp(32),1f))
+        addView(button("隐藏"){ close(false); hideBubble() },LinearLayout.LayoutParams(dp(52),dp(32)))
+        addView(button("关闭"){ close(true) },LinearLayout.LayoutParams(dp(52),dp(32)))
+        setOnTouchListener { _, event -> dragPanel(event); true }
+    }
     private fun row(e:OverlayMod,s:ModItem.ModSetting,current:JsonElement):View { val r=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL; setPadding(dp(7),dp(5),dp(5),dp(5)); background=shape(LAVENDER,9) }
         r.addView(LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; addView(label(s.title,11,INK)); if(s.description.isNotBlank())addView(label(s.description,9,0xFF68677D.toInt(),2)) },LinearLayout.LayoutParams(0,-2,1f))
         when(s.type) { ModItem.SettingType.SWITCH -> r.addView(Switch(this).apply { scaleX=.72f;scaleY=.72f;isChecked=current.jsonPrimitive.booleanOrNull?:false;setOnCheckedChangeListener{_,v->save(e,s.key,JsonPrimitive(v))} },LinearLayout.LayoutParams(dp(46),dp(30)))
@@ -85,7 +102,17 @@ class ModOverlaySettingsService : Service() {
         if(s.unit=="×")r.addView(button("−"){change(f,-s.step.coerceAtLeast(1),min,max)},LinearLayout.LayoutParams(dp(25),dp(30)));r.addView(f,LinearLayout.LayoutParams(dp(42),dp(30)));if(s.unit=="×")r.addView(button("+"){change(f,s.step.coerceAtLeast(1),min,max)},LinearLayout.LayoutParams(dp(25),dp(30))) }
     private fun change(f:EditText,d:Int,min:Int,max:Int){f.setText(((f.text.toString().toIntOrNull()?:min)+d).coerceIn(min,max).toString())}
     private fun clamp(f:EditText,e:OverlayMod,s:ModItem.ModSetting,min:Int,max:Int){val v=(f.text.toString().toIntOrNull()?:min).coerceIn(min,max);if(f.text.toString()!=v.toString())f.setText(v.toString());save(e,s.key,JsonPrimitive(v))}
-    private fun button(t:String,click:()->Unit)=Button(this).apply { text=t;textSize=10f;isAllCaps=false;setPadding(dp(3),0,dp(3),0);minWidth=0;minHeight=0;setTextColor(if(t=="关闭")0xFFB53C3C.toInt()else BLUE);background=shape(CREAM,6,PURPLE);setOnClickListener{click()} }
+    private var panelDownX = 0f; private var panelDownY = 0f; private var panelStartX = 0; private var panelStartY = 0
+    private fun dragPanel(event: MotionEvent): Boolean {
+        val v = panel ?: return true
+        val lp = v.layoutParams as? WindowManager.LayoutParams ?: return true
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> { panelDownX = event.rawX; panelDownY = event.rawY; panelStartX = lp.x; panelStartY = lp.y }
+            MotionEvent.ACTION_MOVE -> { lp.x = panelStartX + (event.rawX - panelDownX).roundToInt(); lp.y = panelStartY + (event.rawY - panelDownY).roundToInt(); wm.updateViewLayout(v, lp) }
+        }
+        return true
+    }
+    private fun button(t:String,click:()->Unit)=Button(this).apply { text=t;textSize=10f;isAllCaps=false;setPadding(dp(2),0,dp(2),0);minWidth=0;minHeight=0;minimumWidth=0;minimumHeight=0;setTextColor(if(t=="关闭")0xFFB53C3C.toInt()else BLUE);background=shape(CREAM,6,PURPLE);setOnClickListener{click()} }
     private fun save(e:OverlayMod,k:String,v:JsonElement){val store=e.manager.getSettingsStore(e.mod.pkgId);store.save(store.load(e.mod.settings).toMutableMap().apply{put(k,v)})}
     private fun active():List<OverlayMod>{AddonManager.refreshModManager(ModLoaderManager.packs);return AddonManager.modManagersList.values.flatMap{m->m.packs.filter{m.isEnabled(it.pkgId)&&it.settings.isNotEmpty()&&it.pkgId==TERRARELIEF}.map{OverlayMod(m,it)}}}
     private fun close(show:Boolean=true){remove(panel);panel=null;if(show&&bubble==null&&hotspot==null)showBubble()};private fun params(w:Int,h:Int,focus:Boolean)=WindowManager.LayoutParams(w,h,if(Build.VERSION.SDK_INT>=26)WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,if(focus)WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN else WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,PixelFormat.TRANSLUCENT)
