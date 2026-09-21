@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import eternal.future.tefmanager.FileProviderForegroundService
+import eternal.future.tefmanager.GameOverlayController
 import eternal.future.tefmanager.MainActivity
 import eternal.future.tefmanager.Platform
 import eternal.future.tefmanager.model.GameItem
@@ -19,6 +20,10 @@ actual object GameLauncher {
 
         try {
             val context = MainActivity.context!!
+
+            // The first attempt opens Android's overlay permission page.  Do not
+            // launch Terraria until the user has explicitly granted it.
+            if (!GameOverlayController.ensurePermission(context)) return
 
 /*
             if (BuildConfig.IS_INLINE_GAME) {
@@ -108,6 +113,9 @@ actual object GameLauncher {
 
                 // Start the activity
                 context.startActivity(launchIntent)
+                // The floating button is independent from Terraria's process and
+                // only starts after the game has been launched successfully.
+                GameOverlayController.startForGame(context)
                 AppLogger.i("Game launched successfully: Package=${item.apkPackName}, Version=${item.version}")
 
             } else {
