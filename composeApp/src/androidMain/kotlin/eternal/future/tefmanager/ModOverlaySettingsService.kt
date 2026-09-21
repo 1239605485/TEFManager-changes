@@ -41,10 +41,14 @@ class ModOverlaySettingsService : Service() {
 
     private fun leftGame(): Boolean {
         if (gamePackage.isBlank()) return false
-        val running = (getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager)
-            .runningAppProcesses
-            ?.any { it.processName == gamePackage && it.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND }
-            == true
+        val running = (
+            (getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager)
+                .runningAppProcesses
+                ?.any {
+                    it.processName == gamePackage &&
+                        it.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                } ?: false
+        )
         if (running) {
             seenGame = true
             lastGameForegroundAt = System.currentTimeMillis()
@@ -118,7 +122,7 @@ class ModOverlaySettingsService : Service() {
                     val next=s.options.firstOrNull { it.value!=current.jsonPrimitive.content } ?: return@button
                     val root = panel as? LinearLayout ?: return@button
                     save(e,s.key,JsonPrimitive(next.value))
-                    val currentScroll = root.childrenOfType<ScrollView>().firstOrNull()?.scrollY ?: 0
+                    val currentScroll = root.findScrollViews().firstOrNull()?.scrollY ?: 0
                     settings(root,e,currentScroll)
                 },
                 LinearLayout.LayoutParams(dp(92),dp(30))
@@ -141,12 +145,14 @@ class ModOverlaySettingsService : Service() {
         return true
     }
     private fun button(t:String,click:()->Unit)=Button(this).apply { text=t;textSize=10f;isAllCaps=false;setPadding(dp(2),0,dp(2),0);minWidth=0;minHeight=0;minimumWidth=0;minimumHeight=0;setTextColor(if(t=="关闭")0xFFB53C3C.toInt()else BLUE);background=shape(CREAM,6,PURPLE);setOnClickListener{click()} }
-    private inline fun <reified T : View> ViewGroup.childrenOfType(): List<T> = (0 until childCount).flatMap { index ->
-        val child = getChildAt(index)
-        buildList {
-            if (child is T) add(child)
-            if (child is ViewGroup) addAll(child.childrenOfType<T>())
+    private fun ViewGroup.findScrollViews(): List<ScrollView> {
+        val result = mutableListOf<ScrollView>()
+        for (index in 0 until childCount) {
+            val child = getChildAt(index)
+            if (child is ScrollView) result += child
+            if (child is ViewGroup) result += child.findScrollViews()
         }
+        return result
     }
     private fun save(e:OverlayMod,k:String,v:JsonElement){val store=e.manager.getSettingsStore(e.mod.pkgId);store.save(store.load(e.mod.settings).toMutableMap().apply{put(k,v)})}
     private fun active():List<OverlayMod>{AddonManager.refreshModManager(ModLoaderManager.packs);return AddonManager.modManagersList.values.flatMap{m->m.packs.filter{m.isEnabled(it.pkgId)&&it.settings.isNotEmpty()&&it.pkgId==TERRARELIEF}.map{OverlayMod(m,it)}}}
