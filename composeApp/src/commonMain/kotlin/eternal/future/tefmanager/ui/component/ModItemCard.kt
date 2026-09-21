@@ -70,6 +70,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 import eternal.future.tefmanager.model.ModItem
 import eternal.future.tefmanager.strings.StringsResource.Strings
 import eternal.future.tefmanager.utils.addon.ModSettingsStore
@@ -148,11 +149,7 @@ fun ModItemCard(
             .padding(4.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (internalEnabled) {
-                MaterialTheme.colorScheme.surfaceContainerHigh
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerLow
-            }
+            containerColor = if (internalEnabled) UiCard else UiCard.copy(alpha = 0.72f)
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 0.dp,
@@ -174,11 +171,7 @@ fun ModItemCard(
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (internalEnabled) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHighest
-                    },
+                    color = if (internalEnabled) UiAccentSoft else UiCardMuted,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Box(
@@ -879,6 +872,11 @@ fun ModItemCard(
         }
     }
 }
+
+// Compact lavender/cream palette shared by the first-level mod cards.
+private val UiCard = Color(0xFFFFFCF3)
+private val UiCardMuted = Color(0xFFF2F0FA)
+private val UiAccentSoft = Color(0xFFE0DEFF)
 
 /**
  * The manifest historically stored values such as "Terraria Android 1.4.5.8.5".

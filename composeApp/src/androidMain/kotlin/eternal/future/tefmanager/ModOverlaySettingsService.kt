@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
@@ -52,6 +53,8 @@ class ModOverlaySettingsService : Service() {
     private var bubble: View? = null
     private var panel: View? = null
     private var gamePackage: String? = null
+    private var foregroundGraceUntil: Long = 0L
+    private var hasSeenGameForeground = false
     private val handler = Handler(Looper.getMainLooper())
     private val prefs: SharedPreferences by lazy { getSharedPreferences("overlay", MODE_PRIVATE) }
     private val foregroundCheck = object : Runnable {
@@ -78,6 +81,9 @@ class ModOverlaySettingsService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         gamePackage = intent?.getStringExtra(EXTRA_GAME_PACKAGE) ?: gamePackage
+        // Terraria needs a few seconds to create its process and promote the
+        // activity. Do not interpret that startup window as an app switch.
+        foregroundGraceUntil = SystemClock.elapsedRealtime() + 15_000L
         if (Settings.canDrawOverlays(this) && bubble == null && panel == null) showBubble()
         handler.removeCallbacks(foregroundCheck)
         handler.postDelayed(foregroundCheck, 1200)
@@ -323,8 +329,15 @@ class ModOverlaySettingsService : Service() {
 
     private fun isGameForeground(): Boolean {
         val target = gamePackage ?: return true
+        if (SystemClock.elapsedRealtime() < foregroundGraceUntil) return true
         val am = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        return am.runningAppProcesses?.any { it.processName == target && it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND } == true
+        val processes = am.runningAppProcesses ?: return true
+        val foreground = processes.any {
+            (it.processName == target || it.processName.startsWith("$target:")) &&
+                    it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        }
+        if (foreground) hasSeenGameForeground = true
+        return foreground || !hasSeenGameForeground
     }
 
     private fun overlayParams(width: Int, height: Int, focusable: Boolean): WindowManager.LayoutParams = WindowManager.LayoutParams(

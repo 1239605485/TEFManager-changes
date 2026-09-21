@@ -448,13 +448,13 @@ private fun modGlyph(name: String): String {
 
 // Light palette: keep the pixel-console layout, but match TEFManager's original
 // white/lavender appearance instead of forcing a separate dark theme.
-private val PixelBackground = Color(0xFFF5F7FF)
-private val PixelPanel = Color(0xFFFFFFFF)
-private val PixelPanelRaised = Color(0xFFEEF3FF)
-private val PixelLine = Color(0xFFC7D0E5)
-private val PixelCyan = Color(0xFF1264E8)
-private val PixelCyanDark = Color(0xFFDCE8FF)
+private val PixelBackground = Color(0xFFF3F1FF)
+private val PixelPanel = Color(0xFFFFFCF3)
+private val PixelPanelRaised = Color(0xFFF0EEFF)
+private val PixelLine = Color(0xFFB8B2E8)
+private val PixelCyan = Color(0xFF6863C8)
+private val PixelCyanDark = Color(0xFFE0DEFF)
 private val PixelAmber = Color(0xFFE79A00)
-private val PixelText = Color(0xFF17213A)
-private val PixelMuted = Color(0xFF5E6A80)
+private val PixelText = Color(0xFF262344)
+private val PixelMuted = Color(0xFF716D8C)
 private val PixelDanger = Color(0xFFD13636)
