@@ -115,7 +115,7 @@ actual object GameLauncher {
                 context.startActivity(launchIntent)
                 // The floating button is independent from Terraria's process and
                 // only starts after the game has been launched successfully.
-                GameOverlayController.startForGame(context)
+                GameOverlayController.startForGame(context, item.apkPackName)
                 AppLogger.i("Game launched successfully: Package=${item.apkPackName}, Version=${item.version}")
 
             } else {

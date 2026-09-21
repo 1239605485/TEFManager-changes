@@ -3,11 +3,14 @@ package eternal.future.tefmanager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.app.ActivityManager
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
@@ -19,6 +22,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
+import android.widget.ImageView
+import android.content.SharedPreferences
 import androidx.core.app.NotificationCompat
 import eternal.future.tefmanager.model.ModItem
 import eternal.future.tefmanager.utils.addon.AddonManager
@@ -37,6 +42,7 @@ import kotlin.math.roundToInt
  */
 class ModOverlaySettingsService : Service() {
     companion object {
+        const val EXTRA_GAME_PACKAGE = "game_package"
         private const val CHANNEL_ID = "mod_overlay_service"
         private const val NOTIFICATION_ID = 1002
         private const val TERRARELIEF_ID = "com.celso.terrarelief"
@@ -45,6 +51,18 @@ class ModOverlaySettingsService : Service() {
     private lateinit var windowManager: WindowManager
     private var bubble: TextView? = null
     private var panel: View? = null
+    private var gamePackage: String? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private val prefs: SharedPreferences by lazy { getSharedPreferences("overlay", MODE_PRIVATE) }
+    private val foregroundCheck = object : Runnable {
+        override fun run() {
+            if (gamePackage != null && !isGameForeground()) {
+                stopSelf()
+                return
+            }
+            handler.postDelayed(this, 900)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -59,7 +77,10 @@ class ModOverlaySettingsService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        gamePackage = intent?.getStringExtra(EXTRA_GAME_PACKAGE) ?: gamePackage
         if (Settings.canDrawOverlays(this) && bubble == null && panel == null) showBubble()
+        handler.removeCallbacks(foregroundCheck)
+        handler.postDelayed(foregroundCheck, 1200)
         return START_NOT_STICKY
     }
 
@@ -68,28 +89,29 @@ class ModOverlaySettingsService : Service() {
         removeOverlay(panel)
         bubble = null
         panel = null
+        handler.removeCallbacks(foregroundCheck)
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun showBubble() {
-        val view = TextView(this).apply {
-            text = "⚙"
-            textSize = 26f
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-            background = rounded(0xFF1264E8.toInt(), 28)
+        val view = ImageView(this).apply {
+            setImageResource(R.drawable.overlay_character)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(2), dp(2), dp(2), dp(2))
+            contentDescription = "打开模组设置"
+            background = rounded(0xFFF1F5FF.toInt(), 22, 0xFFB9C7E2.toInt())
             elevation = dp(8).toFloat()
         }
         var downX = 0f
         var downY = 0f
         var startX = 0
         var startY = 0
-        val params = overlayParams(dp(56), dp(56), focusable = false).apply {
+        val params = overlayParams(dp(44), dp(44), focusable = false).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = dp(14)
-            y = dp(180)
+            x = prefs.getInt("x", dp(14))
+            y = prefs.getInt("y", dp(180))
         }
         view.setOnTouchListener { _, event ->
             when (event.action) {
@@ -106,6 +128,8 @@ class ModOverlaySettingsService : Service() {
                 MotionEvent.ACTION_UP -> {
                     if (kotlin.math.abs(event.rawX - downX) < dp(6) && kotlin.math.abs(event.rawY - downY) < dp(6)) {
                         showPanel()
+                    } else {
+                        prefs.edit().putInt("x", params.x).putInt("y", params.y).apply()
                     }
                     true
                 }
@@ -144,13 +168,16 @@ class ModOverlaySettingsService : Service() {
             return
         }
         mods.forEach { entry ->
-            shell.addView(Button(this).apply {
-                text = entry.mod.name
-                isAllCaps = false
-                setTextColor(0xFF17213A.toInt())
+            shell.addView(LinearLayout(this).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(10), dp(4), dp(4), dp(4))
                 background = rounded(0xFFEEF3FF.toInt(), 12, 0xFFC7D0E5.toInt())
-                setOnClickListener { renderSettings(shell, entry) }
-            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)).apply {
+                addView(text(entry.mod.name, 14, 0xFF17213A.toInt()), LinearLayout.LayoutParams(0, dp(44), 1f))
+                addView(Button(this@ModOverlaySettingsService).apply {
+                    text = "⚙ 设置"; isAllCaps = false; textSize = 12f
+                    setOnClickListener { renderSettings(shell, entry) }
+                }, LinearLayout.LayoutParams(dp(92), dp(40)))
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
                 topMargin = dp(8)
             })
         }
@@ -171,7 +198,7 @@ class ModOverlaySettingsService : Service() {
             ).apply { topMargin = dp(7) })
         }
         scroll.addView(content)
-        shell.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(400)))
+        shell.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(340)))
     }
 
     private fun settingRow(entry: OverlayMod, setting: ModItem.ModSetting, current: kotlinx.serialization.json.JsonElement): View {
@@ -267,10 +294,30 @@ class ModOverlaySettingsService : Service() {
     private fun header(title: String, action: String, onAction: () -> Unit): View = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
         addView(text(title, 18, 0xFF17213A.toInt()), LinearLayout.LayoutParams(0, dp(40), 1f))
-        addView(Button(this@ModOverlaySettingsService).apply { text = action; isAllCaps = false; setOnClickListener { onAction() } })
+        addView(Button(this@ModOverlaySettingsService).apply { text = action; isAllCaps = false; textSize = 12f; setOnClickListener { onAction() } })
+        if (action == "关闭") {
+            addView(Button(this@ModOverlaySettingsService).apply {
+                text = "隐藏"; isAllCaps = false; textSize = 12f
+                setOnClickListener { hidePanel() }
+            })
+        }
     }
 
     private fun closePanel() { removeOverlay(panel); panel = null; if (bubble == null) showBubble() }
+
+    private fun hidePanel() {
+        removeOverlay(panel)
+        panel = null
+        showBubble()
+        // Keep the touch target in place while making the icon invisible.
+        bubble?.alpha = 0f
+    }
+
+    private fun isGameForeground(): Boolean {
+        val target = gamePackage ?: return true
+        val am = getSystemService(ACTIVITY_SERVICE) as ActivityManager
+        return am.runningAppProcesses?.any { it.processName == target && it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND } == true
+    }
 
     private fun overlayParams(width: Int, height: Int, focusable: Boolean): WindowManager.LayoutParams = WindowManager.LayoutParams(
         width, height,

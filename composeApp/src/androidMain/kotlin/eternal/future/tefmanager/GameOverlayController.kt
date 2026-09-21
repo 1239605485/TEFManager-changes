@@ -23,10 +23,11 @@ object GameOverlayController {
         return true
     }
 
-    fun startForGame(context: Context) {
+    fun startForGame(context: Context, gamePackage: String? = null) {
         if (!Settings.canDrawOverlays(context)) return
 
         val serviceIntent = Intent(context, ModOverlaySettingsService::class.java)
+            .putExtra(ModOverlaySettingsService.EXTRA_GAME_PACKAGE, gamePackage)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent)
         } else {
