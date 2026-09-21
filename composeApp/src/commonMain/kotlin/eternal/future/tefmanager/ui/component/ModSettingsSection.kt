@@ -440,7 +440,7 @@ private fun pixelFieldColors() = OutlinedTextFieldDefaults.colors(
  * declared schema unchanged.
  */
 private fun terraReliefFallbackSettings(mod: ModItem): List<ModItem.ModSetting> =
-    if (mod.pkgId != "com.celso.terrarelief") emptyList() else listOf(
+    if (!mod.isTerraReliefTarget()) emptyList() else listOf(
         ModItem.ModSetting(
             key = "building_material_multiplier",
             title = "建筑材料合成产出",
@@ -484,6 +484,14 @@ private fun terraReliefFallbackSettings(mod: ModItem): List<ModItem.ModSetting> 
             defaultValue = JsonPrimitive(2), min = 1, max = 99, step = 1, unit = "×"
         )
     )
+
+private fun ModItem.isTerraReliefTarget(): Boolean {
+    val text = "$pkgId $name".lowercase()
+    return pkgId == "com.celso.terrarelief" ||
+        text.contains("terrarelief") ||
+        text.contains("easycraft") ||
+        name.contains("轻松泰拉")
+}
 
 private fun ModItem.ModSetting.sectionName(): String = when {
     key.startsWith("fishing_") || key == "bait_save_enabled" -> "钓鱼"

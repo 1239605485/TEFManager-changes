@@ -341,7 +341,7 @@ fun ModItemCard(
 
                     // The compact card exposes the settings shortcut.  Expanded
                     // details intentionally stay read-only except for deletion.
-                    if (!expanded && (mod.settings.isNotEmpty() || mod.pkgId == "com.celso.terrarelief") && settingsStore != null) {
+                    if (!expanded && (mod.settings.isNotEmpty() || mod.isTerraReliefTarget()) && settingsStore != null) {
                         ModSettingsSection(mod, settingsStore)
                     }
                 }
@@ -873,6 +873,14 @@ fun ModItemCard(
             }
         }
     }
+}
+
+private fun ModItem.isTerraReliefTarget(): Boolean {
+    val text = "$pkgId $name".lowercase()
+    return pkgId == "com.celso.terrarelief" ||
+        text.contains("terrarelief") ||
+        text.contains("easycraft") ||
+        name.contains("轻松泰拉")
 }
 
 /**
