@@ -69,7 +69,12 @@ import kotlinx.serialization.json.jsonPrimitive
 
 /** The second-level editor. Visuals live here; the JSON store and native mod API stay unchanged. */
 @Composable
-fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
+fun ModSettingsSection(
+    mod: ModItem,
+    store: ModSettingsStore,
+    openRequest: Boolean = false,
+    onOpenRequestConsumed: () -> Unit = {}
+) {
     val schema = remember(mod.pkgId, mod.settings) {
         mod.settings.ifEmpty { terraReliefFallbackSettings(mod) }
     }
@@ -81,6 +86,16 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
     // Keep the scroll position above the dialog content so option updates do not
     // recreate the state and jump back to the top.
     val settingsScrollState = rememberScrollState()
+
+    LaunchedEffect(openRequest) {
+        if (openRequest) {
+            rawJson = store.loadRaw()
+            advancedMode = false
+            jsonError = null
+            settingsOpen = true
+            onOpenRequestConsumed()
+        }
+    }
 
     fun update(key: String, value: JsonElement) {
         values = values + (key to value)
