@@ -2,6 +2,7 @@ package eternal.future.tefmanager.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -29,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -43,6 +45,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -91,7 +96,10 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 })
                 ) {
                     Surface(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 680.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.74f)
+                            .heightIn(min = 440.dp, max = 620.dp),
                         shape = MaterialTheme.shapes.extraLarge,
                         color = MaterialTheme.colorScheme.surface
                     ) {
@@ -227,24 +235,34 @@ private fun ModSettingEditor(
                         isError = !inputValid,
                         singleLine = true,
                         suffix = { Text(unit) },
+                        shape = RoundedCornerShape(28.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = if (inputValid) MaterialTheme.colorScheme.primary else Color(0xFFFF7043),
+                            unfocusedBorderColor = if (inputValid) MaterialTheme.colorScheme.outline else Color(0xFFFF7043),
+                            errorBorderColor = Color(0xFFFF7043),
+                            errorLabelColor = Color(0xFFFF7043),
+                            errorTrailingIconColor = Color(0xFFFF7043),
+                            errorSupportingTextColor = Color(0xFFFF7043)
+                        ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.width(112.dp)
+                        modifier = Modifier.width(124.dp)
                     )
                 }
                 if (setting.description.isNotBlank()) Text(setting.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Slider(
                     value = now.toFloat(),
                     onValueChange = { raw ->
-                        val snapped = (min + ((raw.toInt() - min + step / 2) / step) * step).coerceIn(min, max)
+                        // Keep dragging continuous; only the committed integer value is rounded.
+                        val snapped = (min + (((raw - min) / step).roundToInt() * step)).coerceIn(min, max)
                         input = snapped.toString()
                         onValidityChanged(true)
                         onChange(JsonPrimitive(snapped))
                     },
                     valueRange = min.toFloat()..max.toFloat(),
-                    steps = ((max - min) / step - 1).coerceAtLeast(0)
+                    steps = 0
                 )
                 if (!inputValid) {
-                    Text("请输入 ${min}–${max} 之间的有效值", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    Text("请输入 ${min}–${max} 之间的有效值", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFF7043))
                 }
             }
         }
