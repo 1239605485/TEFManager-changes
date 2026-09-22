@@ -90,7 +90,10 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
             onDismissRequest = { settingsOpen = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+            Box(
+                Modifier.fillMaxWidth().fillMaxHeight(),
+                contentAlignment = Alignment.BottomCenter
+            ) {
                 AnimatedVisibility(
                     visible = true,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 })
@@ -98,8 +101,8 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(0.74f)
-                            .heightIn(min = 440.dp, max = 620.dp),
+                            .fillMaxHeight(0.62f)
+                            .heightIn(min = 360.dp, max = 520.dp),
                         shape = MaterialTheme.shapes.extraLarge,
                         color = MaterialTheme.colorScheme.surface
                     ) {
@@ -217,7 +220,10 @@ private fun ModSettingEditor(
             val unit = setting.unit.ifBlank { "×" }
             var input by remember(current, min, max) { mutableStateOf(now.toString()) }
             val parsed = input.toIntOrNull()
-            val inputValid = parsed != null && parsed in min..max && (parsed - min) % step == 0
+            // Manual input only needs to stay inside the declared range. The slider
+            // can still snap to its configured step, but typing a valid value such
+            // as 50 must not be rejected just because it is not step-aligned.
+            val inputValid = parsed != null && parsed in min..max
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("${setting.title}：${now}${unit}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
@@ -227,7 +233,7 @@ private fun ModSettingEditor(
                             if (text.all { it.isDigit() } && text.length <= 6) {
                                 input = text
                                 val value = text.toIntOrNull()
-                                val valid = value != null && value in min..max && (value - min) % step == 0
+                                val valid = value != null && value in min..max
                                 onValidityChanged(valid)
                                 if (valid) onChange(JsonPrimitive(value))
                             }
