@@ -1,15 +1,19 @@
 package eternal.future.tefmanager.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,10 +28,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,14 +60,17 @@ import kotlinx.serialization.json.contentOrNull
 fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
     var values by remember(mod.pkgId) { mutableStateOf(store.load(mod.settings)) }
     var settingsOpen by remember { mutableStateOf(false) }
+    var invalidKeys by remember { mutableStateOf(emptySet<String>()) }
 
     fun update(key: String, value: JsonElement) {
         values = values + (key to value)
-        store.save(values)
     }
 
     OutlinedButton(
-        onClick = { settingsOpen = true },
+        onClick = {
+            invalidKeys = emptySet()
+            settingsOpen = true
+        },
         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
     ) {
         Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -75,12 +85,17 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
             onDismissRequest = { settingsOpen = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Column(Modifier.fillMaxWidth()) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 })
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 680.dp),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Column(Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -89,8 +104,8 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                             Icon(Icons.Rounded.ArrowBack, contentDescription = "返回")
                         }
                         Column(Modifier.weight(1f)) {
-                            Text("轻松泰拉设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(mod.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(mod.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("模组设置", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -100,7 +115,7 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text(
-                            "每项设置会自动保存，重新启动游戏后生效。",
+                            "调整后点击“完成”保存，重新启动游戏后生效。",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -123,7 +138,10 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                                             ModSettingEditor(
                                                 setting = setting,
                                                 current = values[setting.key] ?: setting.defaultValue,
-                                                onChange = { update(setting.key, it) }
+                                                onChange = { update(setting.key, it) },
+                                                onValidityChanged = { valid ->
+                                                    invalidKeys = if (valid) invalidKeys - setting.key else invalidKeys + setting.key
+                                                }
                                             )
                                         }
                                     }
@@ -140,14 +158,22 @@ fun ModSettingsSection(mod: ModItem, store: ModSettingsStore) {
                         OutlinedButton(
                             onClick = {
                                 values = mod.settings.associate { it.key to it.defaultValue }
-                                store.save(values)
+                                invalidKeys = emptySet()
                             },
                             modifier = Modifier.weight(1f)
                         ) { Text("恢复默认") }
                         Button(
-                            onClick = { settingsOpen = false },
+                            onClick = {
+                                if (invalidKeys.isEmpty()) {
+                                    store.save(values)
+                                    settingsOpen = false
+                                }
+                            },
+                            enabled = invalidKeys.isEmpty(),
                             modifier = Modifier.weight(1f)
                         ) { Text("完成") }
+                    }
+                        }
                     }
                 }
             }
@@ -160,6 +186,7 @@ private fun ModSettingEditor(
     setting: ModItem.ModSetting,
     current: JsonElement,
     onChange: (JsonElement) -> Unit,
+    onValidityChanged: (Boolean) -> Unit,
 ) {
     when (setting.type) {
         ModItem.SettingType.SWITCH -> Row(
@@ -180,17 +207,46 @@ private fun ModSettingEditor(
             val step = setting.step.coerceAtLeast(1)
             val now = (current.jsonPrimitive.intOrNull ?: min).coerceIn(min, max)
             val unit = setting.unit.ifBlank { "×" }
-            Text("${setting.title}：${now}${unit}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            if (setting.description.isNotBlank()) Text(setting.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Slider(
-                value = now.toFloat(),
-                onValueChange = { raw ->
-                    val snapped = (min + ((raw.toInt() - min + step / 2) / step) * step).coerceIn(min, max)
-                    onChange(JsonPrimitive(snapped))
-                },
-                valueRange = min.toFloat()..max.toFloat(),
-                steps = ((max - min) / step - 1).coerceAtLeast(0)
-            )
+            var input by remember(current, min, max) { mutableStateOf(now.toString()) }
+            val parsed = input.toIntOrNull()
+            val inputValid = parsed != null && parsed in min..max && (parsed - min) % step == 0
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${setting.title}：${now}${unit}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                    OutlinedTextField(
+                        value = input,
+                        onValueChange = { text ->
+                            if (text.all { it.isDigit() } && text.length <= 6) {
+                                input = text
+                                val value = text.toIntOrNull()
+                                val valid = value != null && value in min..max && (value - min) % step == 0
+                                onValidityChanged(valid)
+                                if (valid) onChange(JsonPrimitive(value))
+                            }
+                        },
+                        isError = !inputValid,
+                        singleLine = true,
+                        suffix = { Text(unit) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.width(112.dp)
+                    )
+                }
+                if (setting.description.isNotBlank()) Text(setting.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Slider(
+                    value = now.toFloat(),
+                    onValueChange = { raw ->
+                        val snapped = (min + ((raw.toInt() - min + step / 2) / step) * step).coerceIn(min, max)
+                        input = snapped.toString()
+                        onValidityChanged(true)
+                        onChange(JsonPrimitive(snapped))
+                    },
+                    valueRange = min.toFloat()..max.toFloat(),
+                    steps = ((max - min) / step - 1).coerceAtLeast(0)
+                )
+                if (!inputValid) {
+                    Text("请输入 ${min}–${max} 之间的有效值", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
 
         ModItem.SettingType.CHOICE -> {
